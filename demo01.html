@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>
+		Audio Recorder
+	</title>
+	<script type="text/javascript" src="jquery-1.3.2.js"></script>
+	<script type="text/javascript" src="aws-sdk-2.263.1.min.js"></script>
+	
+	<script type="text/javascript">
+	    AWS.config.update({
+	        accessKeyId : 'Your-Access-Key',
+	        secretAccessKey : 'Your-Secret-Access-Key'
+	    });
+	    AWS.config.region = 'us-east-2';
+	</script>
+	<style type='text/css'>
+    	ul { list-style: none; }
+    	#recordingslist audio { display: block; margin-bottom: 10px; }
+  	</style>
+
+</head>
+<body>
+
+
+	<h1>AWS Transcribe Audio-Text Conversion</h1>
+
+  <p>For testing use Firefox Developer</p>
+  <p>Also before you enable microphone input either plug in headphones or turn the volume down if you want to avoid ear splitting feedback!</p>
+
+  <button onclick="startRecording(this);">record</button>
+  <button onclick="stopRecording(this);" disabled>stop</button>
+  
+  <h2>Recordings</h2>
+  <ul id="recordingslist"></ul>
+  
+  <h2>Log</h2>
+  <pre id="log"></pre>
+
+  <script>
+  function __log(e, data) {
+    log.innerHTML += "\n" + e + " " + (data || '');
+  }
+
+  var audio_context;
+  var recorder;
+
+  function startUserMedia(stream) {
+    var input = audio_context.createMediaStreamSource(stream);
+    __log('Media stream created.');
+
+    // Uncomment if you want the audio to feedback directly
+    //input.connect(audio_context.destination);
+    //__log('Input connected to audio context destination.');
+    
+    recorder = new Recorder(input);
+    __log('Recorder initialised.');
+  }
+
+  function startRecording(button) {
+    recorder && recorder.record();
+    button.disabled = true;
+    button.nextElementSibling.disabled = false;
+    __log('Recording...');
+  }
+
+  function stopRecording(button) {
+    recorder && recorder.stop();
+    button.disabled = true;
+    button.previousElementSibling.disabled = false;
+    __log('Stopped recording.');
+    
+    // create WAV download link using audio data blob
+    createDownloadLink();
+
+    recorder.clear();
+    
+    
+  }
+
+  function createDownloadLink() {
+    recorder && recorder.exportWAV(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var li = document.createElement('li');
+      var au = document.createElement('audio');
+      var hf = document.createElement('a');
+      
+      
+
+
+      au.controls = true;
+      au.src = url;
+      hf.href = url;
+      hf.download = new Date().toISOString() + '.wav';
+      hf.innerHTML = hf.download;
+      li.appendChild(au);
+      li.appendChild(hf);
+      recordingslist.appendChild(li);
+
+      var options = {
+        uri: url,
+        encoding: null
+      };
+      request(options, function(error, response, body) {
+          if (error || response.statusCode !== 200) { 
+              console.log("failed to get image");
+              console.log(error);
+          } 
+      });
+
+      
+    });
+  }
+
+  window.onload = function init() {
+    try {
+      // webkit shim
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      navigator.getUserMedia = ( navigator.getUserMedia ||
+                       navigator.webkitGetUserMedia ||
+                       navigator.mozGetUserMedia ||
+                       navigator.msGetUserMedia );
+      window.URL = window.URL || window.webkitURL;
+      
+      audio_context = new AudioContext;
+      __log('Audio context set up.');
+      __log('navigator.getUserMedia ' + (navigator.getUserMedia ? 'available.' : 'not present!'));
+    } catch (e) {
+      alert('No web audio support in this browser!');
+    }
+    
+    navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+      __log('No live audio input: ' + e);
+    });
+  };
+  </script>
+  <script type="text/javascript" src="recorder.js"></script>
+  
+
+
+
+
+	<form id="fileUploadForm" method="post" enctype="multipart/form-data">
+		<input type="file" name="file" id="file" value="dataFile" required="">
+		<input type="submit">
+	</form>
+	<script type="text/javascript">
+		// Create the XHR object.
+		function createCORSRequest(method, url) {
+		  var xhr = new XMLHttpRequest();
+		  if ("withCredentials" in xhr) {
+		    // XHR for Chrome/Firefox/Opera/Safari.
+		    xhr.open(method, url, true);
+		  } else if (typeof XDomainRequest != "undefined") {
+		    // XDomainRequest for IE.
+		    xhr = new XDomainRequest();
+		    xhr.open(method, url);
+		  } else {
+		    // CORS not supported.
+		    xhr = null;
+		  }
+		  return xhr;
+		}
+
+		
+
+		// Make the actual CORS request.
+		function makeCorsRequest() {
+		  // This is a sample server that supports CORS.
+		  var url = 'https://s3.us-east-2.amazonaws.com/basic02/demo_file.wav';
+
+		  var xhr = createCORSRequest('GET', url);
+		  if (!xhr) {
+		    alert('CORS not supported');
+		    return;
+		  }
+
+		  // Response handlers.
+		  
+
+		  xhr.onerror = function() {
+		    alert('Woops, there was an error making the request.');
+		  };
+
+		  xhr.send();
+		}
+		makeCorsRequest();
+	</script>
+	
+
+
+	<script type="text/javascript">
+		$("#fileUploadForm").submit(function() {
+		alert("OYEEEEEEEEEE");
+		var bucket = new AWS.S3({params: {Bucket: 'basic02'}});
+		var fileChooser = document.getElementById('file');
+		var file = fileChooser.files[0];
+		if (file) {
+		var params = {Key: 'demo_file.wav', ContentType: file.type, Body: file};
+		bucket.upload(params).on('httpUploadProgress', function(evt) {
+		console.log("Uploaded :: " + parseInt((evt.loaded * 100) / evt.total)+'%');
+		}).send(function(err, data) {
+
+		alert("File uploaded successfully.");
+		alert('oele');
+		    var transcribeservice = new AWS.TranscribeService({apiVersion: '2017-10-26'});
+		    // var en_us = 'en_us'
+		    // var es_us = 'es-US'
+		    // var mp3 = 'mp3'
+		    // var mp4 = 'mp4'
+		    // var wav = 'wav'
+		    // var flac = 'flac'
+		    
+
+			var params = {
+			  LanguageCode: 'en-US', /* required */
+			  Media: { /* required */
+			    MediaFileUri: 'https://s3.us-east-2.amazonaws.com/basic02/demo_file.wav'
+			  },
+			  MediaFormat: 'wav', /* required */
+			  TranscriptionJobName: new Date().toISOString() + '-ConvJob', /* required */
+			  
+			  Settings: {
+			    MaxSpeakerLabels: 2,
+			    ShowSpeakerLabels: true || false,
+			    
+			  }
+			};
+			transcribeservice.startTranscriptionJob(params, function(err, data) {
+			  if (err) console.log(err, err.stack); // an error occurred
+			  else     console.log(data);           // successful response
+			});
+		});
+		}
+
+
+
+		return false;
+		});
+
+
+		
+		
+
+		
+		
+
+		// $( "#other" ).click(function() {
+		//   $( "#target" ).submit();
+		// });
+	</script>
+</body>
+</html>

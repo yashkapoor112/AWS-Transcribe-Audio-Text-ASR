@@ -193,7 +193,7 @@
 
 	<script type="text/javascript">
 		$("#fileUploadForm").submit(function() {
-		alert("OYEEEEEEEEEE");
+		alert("Starting The Upload");
 		var bucket = new AWS.S3({params: {Bucket: 'basic02'}});
 		var fileChooser = document.getElementById('file');
 		var file = fileChooser.files[0];
@@ -204,7 +204,7 @@
 		}).send(function(err, data) {
 
 		alert("File uploaded successfully.");
-		alert('oele');
+		alert('Starting the Conversion');
 		    var transcribeservice = new AWS.TranscribeService({apiVersion: '2017-10-26'});
 
 			var params = {

@@ -116,7 +116,7 @@
 
   window.onload = function init() {
     try {
-      // webkit shim
+      
       window.AudioContext = window.AudioContext || window.webkitAudioContext;
       navigator.getUserMedia = ( navigator.getUserMedia ||
                        navigator.webkitGetUserMedia ||
@@ -177,11 +177,10 @@
 		    return;
 		  }
 
-		  // Response handlers.
 		  
 
 		  xhr.onerror = function() {
-		    alert('Woops, there was an error making the request.');
+		    alert('Error making the request.');
 		  };
 
 		  xhr.send();
@@ -208,12 +207,12 @@
 		    var transcribeservice = new AWS.TranscribeService({apiVersion: '2017-10-26'});
 
 			var params = {
-			  LanguageCode: 'en-US', /* required */
-			  Media: { /* required */
+			  LanguageCode: 'en-US', 
+			  Media: { 
 			    MediaFileUri: 'https://s3.us-east-2.amazonaws.com/basic02/demo_file.wav'
 			  },
-			  MediaFormat: 'wav', /* required */
-			  TranscriptionJobName: new Date().toISOString() + '-ConvJob', /* required */
+			  MediaFormat: 'wav', 
+			  TranscriptionJobName: new Date().toISOString() + '-ConvJob', 
 			  
 			  Settings: {
 			    MaxSpeakerLabels: 2,
